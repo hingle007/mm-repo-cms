@@ -18,6 +18,7 @@ use Mojo\App as App;
 
 class Script {
     private $_mongo;
+    private $_mongoRead;
     private $_redisReadObj;
     private $_redisMmcoreReadObj;
     private $_redisFrontendRead;
@@ -34,10 +35,12 @@ class Script {
     CONST MCAPNAMEARRAY = array('Nifty' => 'Mega Cap','Nifty Next 50' => 'Large Cap','Nifty Mid Cap' => 'Mid Cap','Nifty Small Cap' => 'Small Cap',);
     CONST STOCK_DAY_PRICE = "stock_day_price";
     CONST FEND_FIELD = array('52wk_low', '52wk_high', 'altm_low', 'altm_high', 'mcap', 'vol','dt');
-   
+    CONST QUALITY_COLLECTIONNAME = 'quality_data';
+    CONST VALUATION_COLLECTIONNAME = 'valuation_data';
 
      public function __construct() {
         $this->_mongo = new Base\MongoDb("mmcore_write");
+        $this->_mongoRead = new Base\MongoDb("mmcore_read");
         $redisReadConfigure = App\App::$_registry["redis"]['www_read'];
         $this->_redisReadObj = new \Mojo\Lib\RedisClient($redisReadConfigure['host'],
                                                 $redisReadConfigure['port'], 
@@ -51,6 +54,49 @@ class Script {
         
         //$redisFrontendRead = App\App::$_registry["redis"]['mmfrontend_read'];
         //$this->_redisFrontendRead = new \Mojo\Lib\RedisClient($redisFrontendRead['host'],$redisFrontendRead['port'],$redisFrontendRead['timeout']);
+     }
+     
+     protected function getRequiredMfData(){ 
+        $finalSet = array(); 
+        $filter = [
+            'primary_fund'=>'T'
+        ];
+        $projection =  ['schemeid','scheme_name'];
+        $schemeData = $this->_mongoRead->query('mf_scheme_master',$projection,$filter);
+        $schemeid = array_column($schemeData, 'scheme_name', 'schemeid');
+        $finalSet['schemeid'] = $schemeid;
+        $schemeid = array_keys($schemeid);
+        if(!empty($schemeid)){
+            foreach (array_chunk($schemeid, 1000) as $key => $value) {
+                $data = array();
+                $filter = [
+                    'schemeid'=>['$in'=>$value]
+                ];
+                $projection =  ['schemeid','stockid'];
+                $data = $this->_mongoRead->query('mf_scheme_portfolio',$projection,$filter);
+                foreach ($data as $eachKey => $eachValue) {
+                    if(!empty($eachValue['stockid'])){
+                        $finalSet['mongo'][$eachValue['schemeid']][] = $eachValue['stockid'];
+                    }    
+                }
+                
+                $MSPAWS['stockid'] = $value;
+                $MSPAWS['valKey'] = "MM:SCHEME:";
+                $MSPAWS['valFields'] = "MF_SCHEME_PORTFOLIO";
+                $MSPAWSRes= $this ->getRedisPipeDataSinglKey($MSPAWS ,'_redisMmcoreReadObj');
+                $MSPAWSRes = array_combine($value,$MSPAWSRes);
+                foreach ($MSPAWSRes as $awskey => $awsvalue) {
+                    if(!empty($awsvalue)){
+                        $temp = array();
+                        $temp = array_column($awsvalue, 'stockid');
+
+    //                    pr($temp);exit;
+                        $finalSet['awsRedis'][$awskey] =!empty($temp)?array_filter($temp):[];
+                    }
+                }
+            }
+        }    
+        return $finalSet;
      }
     
      protected function getCFTRequiredData(){
@@ -738,7 +784,7 @@ class Script {
                 end($temp);
                 $lastelement = key($temp);
                 $detailsData[$key]['last_qtr_date'] = $temp[$lastelement]['result_date'];
-                $detailsData[$key]['points'] = $temp[$lastelement]['points'];
+                $detailsData[$key]['points'] = ($temp[$lastelement]['points'] != 0 || $temp[$lastelement]['points'] != '0') ? $temp[$lastelement]['points'] : '--';
             } else {
                 $detailsData[$key]['last_qtr_date'] = 'NA';
                 $detailsData[$key]['points'] = 'NA';
@@ -776,7 +822,7 @@ class Script {
                          $pts += $mvalue['points'];
                          
                          $resultdata[$mvalue['stockid']]['result_date'] = $mvalue['result_date'];
-                         $resultdata[$mvalue['stockid']]['points'] = $pts;
+                         $resultdata[$mvalue['stockid']]['points'] = ($pts != 0 || $pts != '0') ? $pts : '--';
                      }
                 }
                 else{
@@ -791,7 +837,6 @@ class Script {
             
         }
         return $resultdata;
-    }  
-    
+    }   
 }
 

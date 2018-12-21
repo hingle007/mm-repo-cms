@@ -30,12 +30,10 @@ class Script extends App\Models\Script\Script{
     const FROM_EMAIL_ID = 'tech@marketsmojo.com';
     const TO_EMAIL = array(
                             array('email' => 'tech@marketsmojo.com', 'name' => 'Tech'),
-//                            array('email' => 'support@marketsmojo.com', 'name' => 'Support'),
-//                            array('email' => 'amit@marketsmojo.com', 'name' => 'Amit'),
                           );
     const TESTING_EMAIL = array(
-                            array('email' => 'pradeep@marketsmojo.com', 'name' => 'Pradeep'),
-                            array('email' => 'amit@marketsmojo.com', 'name' => 'Amit'),
+                            array('email' => 'pradip@marketsmojo.com', 'name' => 'Pradip'),
+                            array('email' => 'amit@marketsmojo.com', 'name' => 'Harshal'),
                           );
     private $_holding_n_insurance_stocks = array(
         658168, 371122, 103061, 848865, 129404, 280329, 950755, 972978, 506931, 712234, 663472, 485202, 468391, 274022, 1002626, 245716, 935945, 688217, 498418, 710320, 683998, 151780, 648578, 774131, 724375, 461234, 928757, 354807, 374193, 139834, 406579, 424719, 261671, 661429, 306806, 799299, 984417, 292539, 808289, 343883, 991100, 126982, 999997, 464586, 449669, 588736, 282398, 802538, 442477, 724048, 950688, 312348, 1002663, 1002823, 1002829, 1002851, 1002871, 1002872, 885158, 873791, 1002585, 324585, 467058, 232533
@@ -962,7 +960,7 @@ class Script extends App\Models\Script\Script{
         $tabletag  = '<table border="2">';
         $tableHeader = '<tr> '
                         . '<th></th> '
-                        . '<th>Stock</th>'
+//                        . '<th>Stock</th>'
                         . ' <th>Short Name</th>'
                         . ' <th>Core Quality Grade</th>'
                         . ' <th>AWS Quality Grade</th>'
@@ -982,7 +980,7 @@ class Script extends App\Models\Script\Script{
                 $blankData = '<td>--</td>';
                 $tddata .= '<tr>';
                 $tddata .= '<td>'.$i.'</td>';
-                $tddata .= '<td><a href="'.self::MOJO_SITE_URL.'Stocks?StockId='.$stock_id.'" target="_blank">'.$stock_id.'</a></td>';
+//                $tddata .= '<td><a href="'.self::MOJO_SITE_URL.'Stocks?StockId='.$stock_id.'" target="_blank">'.$stock_id.'</a></td>';
                 $tddata .= '<td><a href="'.self::MOJO_SITE_URL.'Stocks?StockId='.$stock_id.'" target="_blank">'.$description['short_name'].'</a></td>';
                 $tddata .= (isset($qualityDifferenceArray[$stock_id]['mongo'])) ? '<td>'.$qualityDifferenceArray[$stock_id]['mongo'].'</td>' :  $blankData;
                 $tddata .= (isset($qualityDifferenceArray[$stock_id]['redis'])) ? '<td>'.$qualityDifferenceArray[$stock_id]['redis'].'</td>'  : $blankData;
@@ -1063,7 +1061,56 @@ class Script extends App\Models\Script\Script{
             
         }
         return $finalFinDataArray;
-    } 
+    }
     
+    
+    public function compareMfPortfolio(){
+        $data = $this->getRequiredMfData();
+        $finalDataSet = array();
+        $i = 1;
+        $trdata = '';
+        foreach ($data['schemeid'] as $key => $value) {
+            $temp = array();
+            if(!empty($data['mongo'][$key]) && !empty($data['awsRedis'][$key])){
+                $temp = array_diff($data['mongo'][$key],$data['awsRedis'][$key]);
+            } else if(empty($data['mongo'][$key]) && !empty($data['awsRedis'][$key])){
+                $temp = array_merge(array('<b>Missing in MMCore Mongo</b>'),$data['awsRedis'][$key]);
+            } if(!empty($data['mongo'][$key]) && empty($data['awsRedis'][$key])){
+                $temp = array_merge(array('<b>Missing in Aws Redis</b>'),$data['mongo'][$key]);
+            }
+            if(!empty($temp)){
+                $trData = array();
+                $trData[] = $i++;
+                $trData[] = !empty($key)?$key:"-";
+                $trData[] = !empty($value)?$value:"-";
+                $trData[] = !empty($temp)?implode(', ', $temp):'-';
+                $trdata .= $this->prepareTr($trData);
+            }
+        }
+        
+        if(!empty($trdata)){
+            $subject = 'Mismatch in MF SCHEME PORTFOLIO(Mongo and AWS Redis)';
+            $bodyText = '<h3>Please check mismatch in MF SCHEME PORTFOLIO.</h3>';
+            $tabletag  = '<table border="2">';
+            $tableHeader = '<tr><th>Sr.No.</th> <th>Scheme</th><th>Scheme Name</th><th>Mismatch</th><tr>';
+            $tableBody = $trdata;
+            $tableEndTag = '</table>';
+            $finalText = $bodyText.$tabletag.$tableHeader.$tableBody.$tableEndTag;
+
+            foreach (self::TESTING_EMAIL as $k => $v) {
+                $mailData = array(
+                    'subject' => $subject,
+                    'fromAddr' => array('email' => self::FROM_EMAIL_ID, 'name' => 'Tech'),
+                    'toAddr' => $v,
+                    'message' => $finalText,
+                );
+//                echo $finalText;
+                $this -> sendEmail($mailData);
+                $res[] = 'Mail sent to '.$v['email'];
+            }
+            Base\StatusCodes::successMessage(200, "success", $res);
+        }
+        Base\StatusCodes::successMessage(200, "success","Whoops! No Data Found");
+    }
 }
 

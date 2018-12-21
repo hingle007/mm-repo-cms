@@ -42,7 +42,7 @@ class Mfscript {
      public function __construct() {
         $this->_mongo = new Base\MongoDb("mmcore_write");
         $this->_mongoFrontendRead = new Base\MongoDb("mmfrontend_read");
-        $redisReadConfigure = App\App::$_registry["redis"]['www_read'];
+        $redisReadConfigure = App\App::$_registry["redis"]['mmfrontend_read'];
         $this->_redisReadObj = new \Mojo\Lib\RedisClient($redisReadConfigure['host'],
                                                 $redisReadConfigure['port'], 
                                             $redisReadConfigure['timeout']);
@@ -74,7 +74,7 @@ class Mfscript {
         return $scheme; 
     }
     protected function getCoreNavData($schemeids) {
-        echo '<pre>';
+//        echo '<pre>';
         $data      = array();
         $schdata   = array();
         $navdata   = array();
@@ -82,24 +82,26 @@ class Mfscript {
         $projection = ['navdate','navrs','schemeid'];
         
         $schemeidskey       = array_values($schemeids);
-        $filter['schemeid'] = ['$in' => $schemeidskey];
-        
-        $data = $this->_mongo->query(self::CORE_MF_DAILY_NAV, $projection, $filter);
-       
-        if(!empty($data)){
-            
-            foreach($data as $key => $value){
-                
-               $tempdata =  mongo_to_normal_date($value['navdate'],'Y-m-d');
-                if(isset($value['schemeid'])){
-                   $schdata[$value['schemeid']]['navdate'] =  $tempdata;
-                   $schdata[$value['schemeid']]['navrs']   =  $value['navrs'];
+        if(!empty($schemeidskey)){
+            foreach (array_chunk($schemeidskey, 1000) as $key1 => $schid) {
+                $filter['schemeid'] = ['$in' => $schid];
+                $data = $this->_mongo->query(self::CORE_MF_DAILY_NAV, $projection, $filter);
+                if(!empty($data)){
+
+                    foreach($data as $key => $value){
+
+                       $tempdata =  mongo_to_normal_date($value['navdate'],'Y-m-d');
+                        if(isset($value['schemeid'])){
+                           $schdata[$value['schemeid']]['navdate'] =  $tempdata;
+                           $schdata[$value['schemeid']]['navrs']   =  $value['navrs'];
+                        }
+                    }
+                }
+                else{
+                    $schdata[$value['schemeid']]['navdate'] =  '--';
+                    $schdata[$value['schemeid']]['navrs']   =  '--';
                 }
             }
-        }
-        else{
-            $schdata[$value['schemeid']]['navdate'] =  '--';
-            $schdata[$value['schemeid']]['navrs']   =  '--';
         }
         return $schdata;
      }
@@ -112,26 +114,68 @@ class Mfscript {
         $projection = ['navdate','navrs','schemeid'];
         
         $schemeidskey       = array_values($schemeids);
-        $filter['schemeid'] = ['$in' => $schemeidskey];
-        
-        $data = $this->_mongoFrontendRead->query(self::FRONTEND_MF_FE_DAILY_NAV, $projection, $filter);
-       
-        if(!empty($data)){
-            
-            foreach($data as $key => $value){
-                
-               $tempdata =  mongo_to_normal_date($value['navdate'],'Y-m-d');
-                if(isset($value['schemeid'])){
-                   $schdata[$value['schemeid']]['navdate'] =  $tempdata;
-                   $schdata[$value['schemeid']]['navrs']   =  $value['navrs'];
+        if(!empty($schemeidskey)){
+            foreach (array_chunk($schemeidskey, 1000) as $key1 => $schid) {
+                $filter['schemeid'] = ['$in' => $schid];
+                $data = $this->_mongoFrontendRead->query(self::FRONTEND_MF_FE_DAILY_NAV, $projection, $filter);
+                if(!empty($data)){
+
+                    foreach($data as $key => $value){
+
+                       $tempdata =  mongo_to_normal_date($value['navdate'],'Y-m-d');
+                        if(isset($value['schemeid'])){
+                           $schdata[$value['schemeid']]['navdate'] =  $tempdata;
+                           $schdata[$value['schemeid']]['navrs']   =  $value['navrs'];
+                        }
+                    }
+                }
+                else{
+                    $schdata[$value['schemeid']]['navdate'] =  '--';
+                    $schdata[$value['schemeid']]['navrs']   =  '--';
                 }
             }
         }
-        else{
-            $schdata[$value['schemeid']]['navdate'] =  '--';
-            $schdata[$value['schemeid']]['navrs']   =  '--';
-        }
         return $schdata;
      }
+    protected function getFrontendRedisNavData($schemeids){
+        /*
+         * Data for Frontend Redis Nav Data
+         * MF:SCHEME:\{SCHEME\} NAV
+         */
+//        $schemeidskey       = array_values($schemeids);
+//        print_r($schemeids);
+        $schemeNavRes = array();
+        $schemeNavRes['schemeid'] = $schemeids;
+        $schemeNavRes['valKey'] = "MF:SCHEME:";
+        $schemeNavRes['valFields'] = "NAV";
+        $schemeNavResult = $this ->getRedisNavValue($schemeNavRes ,'_redisReadObj');
+        $resultset = array_combine($schemeNavRes['schemeid'], $schemeNavResult) ;
+        
+        return $resultset;
+    }
+    private function getRedisNavValue($pipeData = '', $dbRef = '_redisReadObj'){
+        $detailsData = array();
+        $pipe = $this->$dbRef->pipeline();
+        foreach($pipeData['schemeid'] as $sid){
+            $pipe->hget($pipeData['valKey'].$sid, $pipeData['valFields']);
+        }
+        $result = $pipe->exec();
+//         print_r($result);exit;
+        
+        foreach ($result as $key => $value) {
+            $temp = array();
+            $temp= json_decode($value, true);
+            
+            if(!empty($temp['schemeid'])){
+                $detailsData[$temp['schemeid']]['navdate']  = substr($temp['navdate'],0,10);
+                $detailsData[$temp['schemeid']]['navrs']    = $temp['navrs'];
+            }
+            else{
+                $detailsData[] = $temp;
+            }
+                
+        } 
+        return $detailsData;
+    }
 }
 
