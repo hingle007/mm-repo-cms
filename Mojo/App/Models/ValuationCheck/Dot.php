@@ -44,7 +44,8 @@ class Dot {
         $mailObj = new \Mojo\Core\Base\Mail(SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD);
         $fromAddr = array('email' => 'tech@marketsmojo.com', 'name' => 'Markets MOJO Alerts');
         $toAddr = array(
-            ['email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech']
+//            ['email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech']
+            ['email' => 'pradip@marketsmojo.com', 'name' => 'Pradip']
             );
         $this->line_break = "<br/>";
         echo "####### VALUATION ######\n";
@@ -58,9 +59,9 @@ class Dot {
         $this->overwrite_data .= 'Valuation Process started: '. date("Y-m-d H:i:s") . $this->line_break . "</b>";
        
         $vdata = $this->getqvdata( 'valuation' );  
-        echo '<pre>';
-        pr($vdata);
-        exit;
+//        echo '<pre>';
+//        pr($vdata);
+//        exit;
         if(empty($vdata))
             $this->overwrite_data .= "No Data provided for valuation update.";
         $this->overwrite_data .= '*****Mysql update started*****' . $this->line_break;
@@ -70,6 +71,7 @@ class Dot {
         $this->overwrite_data .= '<b>Overwrite process End' . date("Y-m-d H:i:s") . '</b></body></html>';
        
         echo $this->overwrite_data;
+        
         echo $mailObj->sendMailViaSMTP($fromAddr, $toAddr, '', "Valuation Overwrite Process", $this->overwrite_data);
         
         echo "\n\n\ ####### QUALITY ######\n";
@@ -77,6 +79,9 @@ class Dot {
         
         $this->overwrite_data .= 'Quality Process started</b>'. date("Y-m-d H:i:s") . $this->line_break;
         $qdata = $this->getqvdata( 'quality' );     
+//        echo '<pre>';echo count($qdata);
+//        pr($qdata);
+//        exit;
         if(empty($qdata))
             $this->overwrite_data .= "No Data provided for Quality update.";
         $this->overwrite_data .= '*****Mysql update started*****' . $this->line_break;
@@ -258,10 +263,6 @@ class Dot {
                             }
                         }
                        
-                        echo $collection;
-                        pr($filter);
-                        pr($documents);
-                        exit;
                         
                         if ( count($documents) > 0)
                         {
@@ -294,14 +295,17 @@ class Dot {
             $MDBFields[] = "quarter";
         }
         	 
-        $MDBCondn = array();
-
+//        $MDBCondn = array();
+        $MDBCondn['stockid'] = ['$ne' => 0];
         $MDBSort = array("stockid" => -1);
 
         $MDBLimit = array( "limit" => 0 );
 
         $SResult = $this->conn_mongo_r->query($COLLECTIONNAME, $MDBFields, $MDBCondn, array(), $MDBSort, $MDBLimit);
-
+//        echo '<pre>';
+//        
+//        pr($SResult);
+//        exit;
         $qvdata = array();
         foreach ( $SResult as $res )
         {
@@ -309,22 +313,22 @@ class Dot {
             {
                 $qvdata[ $res['stockid'] ] ['grade'] = $res['finalgrade'] ;
                 if($section == 'valuation'){
-                    $qvdata[ $res['stockid'] ] ['pe'] = numberFormat($res['peratio']);
-                    $qvdata[ $res['stockid'] ] ['ev2ebidta'] = numberFormat($res['ev2ebidta']);
-                    $qvdata[ $res['stockid'] ] ['profit1yrgrowth'] = numberFormat($res['profit1yrgrowth']);                    
-                    $qvdata[ $res['stockid'] ] ['peg'] = numberFormat($res['peg']);
-                    $qvdata[ $res['stockid'] ] ['eps'] = numberFormat($res['eps']);
+                    $qvdata[ $res['stockid'] ] ['pe'] = (isset($res['peratio']) && $res['peratio'] != 'NA' ) ? numberFormat($res['peratio']) : 0;
+                    $qvdata[ $res['stockid'] ] ['ev2ebidta'] = (isset($res['ev2ebidta']) && $res['ev2ebidta'] != 'NA' ) ? numberFormat($res['ev2ebidta']) : 0;
+                    $qvdata[ $res['stockid'] ] ['profit1yrgrowth'] = (isset($res['profit1yrgrowth']) && $res['profit1yrgrowth'] != 'NA' ) ? numberFormat($res['profit1yrgrowth']) : 0;                     
+                    $qvdata[ $res['stockid'] ] ['peg'] = (isset($res['peg']) && $res['peg'] != 'NA' && !is_nan($res['peg']) ) ? numberFormat($res['peg']) : 0;
+                    $qvdata[ $res['stockid'] ] ['eps'] = (isset($res['eps']) && $res['eps'] != 'NA' && !is_nan($res['eps']) ) ? numberFormat($res['eps']) : 0;
                 }                
             }
             else
             {
                 $qvdata[ $res['stockid'] ] ['grade'] = "Does not qualify";
                 if($section == 'valuation'){
-                    $qvdata[ $res['stockid'] ] ['pe'] = numberFormat($res['peratio']);
-                    $qvdata[ $res['stockid'] ] ['ev2ebidta'] = numberFormat($res['ev2ebidta']);
-                    $qvdata[ $res['stockid'] ] ['profit1yrgrowth'] = numberFormat($res['profit1yrgrowth']);                    
-                    $qvdata[ $res['stockid'] ] ['peg'] = numberFormat($res['peg']);
-                    $qvdata[ $res['stockid'] ] ['eps'] = numberFormat($res['eps']);
+                    $qvdata[ $res['stockid'] ] ['pe'] = (isset($res['peratio']) && $res['peratio'] != 'NA') ? numberFormat($res['peratio']) : 0;
+                    $qvdata[ $res['stockid'] ] ['ev2ebidta'] = (isset($res['ev2ebidta']) && $res['ev2ebidta'] != 'NA' ) ? numberFormat($res['ev2ebidta']) : 0;
+                    $qvdata[ $res['stockid'] ] ['profit1yrgrowth'] = (isset($res['profit1yrgrowth']) && $res['profit1yrgrowth'] != 'NA' ) ? numberFormat($res['profit1yrgrowth']) : 0;                    
+                    $qvdata[ $res['stockid'] ] ['peg'] = (isset($res['peg']) && $res['peg'] != 'NA' && !is_nan($res['peg'])) ? numberFormat($res['peg']) : 0;
+                    $qvdata[ $res['stockid'] ] ['eps'] = (isset($res['eps']) && $res['eps'] != 'NA' && !is_nan($res['eps']) ) ? numberFormat($res['eps']) : 0;
                 }
             }
             
@@ -376,8 +380,17 @@ class Dot {
         $casecondn_v2 = "";
         $casecondn_sm_v2 = "";
         
+        $casecondn_pe = "";
+        $casecondn_ev2ebidta = "";
+        $casecondn_peg = "";
+        $casecondn_profit1yrgrowth = "";
+        $casecondn_eps = "";
+        
         $stockidlist = array();
         $LotCount = 0;
+//        echo '<pre>';
+//        pr($vdata);
+//        exit;
         foreach ( $vdata as $stockid => $vdet )
         {
             $cnt++;
@@ -418,7 +431,7 @@ class Dot {
                 $this->overwrite_data .= "</table>". $this->line_break. $this->line_break;
                 $sqlupdate =  "update mojo_valuation_scorecard_v2 set pe= ( case ".$casecondn_pe." end ),ev_ebidta=( case ".$casecondn_ev2ebidta." end ),peg_ratio=( case ".$casecondn_peg." end ),eps_growth_2y=( case ".$casecondn_profit1yrgrowth." end ),valuation_rk = ( case ".$casecondn_v2." end ) ,  valuation_sc = ( case ".$casecondn." end ) WHERE quarter = 888801 and stk_id in ( ".implode( ", ", $stockidlist )." )";
                //$sqlupdate =  "update mojo_valuation_scorecard_v2 set valuation_rk = ( case ".$casecondn_v2." end ) ,  valuation_sc = ( case ".$casecondn." end ) WHERE quarter = 888801 and stk_id in ( ".implode( ", ", $stockidlist )." )";
-              //echo $sqlupdate;exit;
+//              echo $sqlupdate;exit;
                 echo "LOT : ".$LotCount." => ";                
                 $res = $this->_connection->execute($sqlupdate);
                 if( $res )
@@ -435,6 +448,7 @@ class Dot {
                 echo " => ";
                 ######  MOJOSTOCKMASTER UPDATE #########
                 $sqlupdate_sm =  "update mojostocksmaster set ValuationRank = ( case ".$casecondn_sm_v2." end ) , ValuationScoreText = ( case ".$casecondn_sm." end ) WHERE STOCKID in ( ".implode( ", ", $stockidlist )." )";
+//              echo$sqlupdate_sm;exit;
                 if( $this->_connection->execute($sqlupdate_sm) )
                 {
                     $this->overwrite_data .= "SUCCESS: " . implode( ", ", $stockidlist ) . $this->line_break;
@@ -466,7 +480,6 @@ class Dot {
         }
         
         
-        
         if ( count($stockidlist) > 0 )
         {
             $this->overwrite_data .= "</table>". $this->line_break. $this->line_break;
@@ -476,6 +489,7 @@ class Dot {
             
             //$sqlupdate =  "update mojo_valuation_scorecard_v2 set valuation_rk = ( case ".$casecondn_v2." end ) , valuation_sc = ( case ".$casecondn." end ) WHERE quarter = 888801 and stk_id in ( ".implode( ", ", $stockidlist )." )";
             $sqlupdate =  "update mojo_valuation_scorecard_v2 set pe= ( case ".$casecondn_pe." end ),ev_ebidta=( case ".$casecondn_ev2ebidta." end ),peg_ratio=( case ".$casecondn_peg." end ),eps_growth_2y=( case ".$casecondn_profit1yrgrowth." end ),valuation_rk = ( case ".$casecondn_v2." end ) ,  valuation_sc = ( case ".$casecondn." end ) WHERE quarter = 888801 and stk_id in ( ".implode( ", ", $stockidlist )." )";
+//           echo $sqlupdate;exit;
             if( $this->_connection->execute($sqlupdate) )
             { 
                 $this->overwrite_data .= "SUCCESS: " . implode( ", ", $stockidlist ) . $this->line_break;
@@ -505,6 +519,199 @@ class Dot {
                 
         }
             
+    }
+    ##################### QUALITY #######################################
+    public function setmysqlqdata( $qdata )
+    {
+        if ( count($qdata) == 0  ){ "ERROR : No Data provided for quality update."; return; }
+        
+        
+        ############ Getting latest quarter of all stocks. Only the latest record of each stock will be updated ###########
+        
+        $sql_latest = "SELECT m1.stock_id, m1.quarter FROM mojo_quality_scorecard_v2 m1 LEFT JOIN mojo_quality_scorecard_v2 m2
+ ON (m1.stock_id = m2.stock_id AND m1.quarter < m2.quarter ) WHERE m2.quarter IS NULL limit 15000";
+       
+       $results = $this->_connection->query($sql_latest);
+        
+        $stockquarter = array();
+        
+        if ( !empty($results) )
+        {
+            foreach ( $results as $res )
+            {
+                if ( empty($res['quarter']) ) { continue; };
+                
+                $stockquarter[ $res['stock_id'] ] = $res['quarter'];
+            }
+        }
+        
+             
+                        
+        /*
+         *  Reference for bulk update with multiple conditons
+         *  update mojo_quality_scorecard_v2 set quality_sc = 
+            (
+               case 
+               when stock_id = 399834 then "Good"
+               when stock_id = 467058 then "Excellent"
+               end
+            )
+            where
+            (stock_id = 399834 and quarter = '201612' )
+            OR
+            (stock_id = 467058 and quarter = '201612' )
+         * 
+         */
+        $cnt = 0;
+        $casecondn = "";
+        $casecondn_sm = "";
+        $stockidlist = array();
+        $stockidlistmulti = array();
+        $LotCount = 0;
+        foreach ( $qdata as $stockid => $qdet )
+        {
+            $cnt++;
+            
+            $stockquarter_flag = false;
+            if ( isset( $stockquarter[ $stockid ] ) && !empty( $stockquarter[ $stockid ] ) ) 
+            {
+                $stockquarter_flag = true;
+            }
+            
+            
+            $stockidlist[] = $stockid;
+            
+            
+            
+            
+            if ( $stockquarter_flag === true ) 
+            {
+                $stockidlistmulti[] = "(stock_id = ".$stockid." and quarter = ".$stockquarter[ $stockid ]." )";
+                
+                $casecondn .= " when stock_id = $stockid then '".$qdet['grade']."' ";
+            }
+            
+                                    
+            $casecondn_sm .= " when STOCKID = $stockid then '".$qdet['grade']."' ";
+            if($cnt == 1)
+                $this->overwrite_data .= "<table style='border:1px solid #000'><tr><th>Stock Id</th><th>grade</th></tr>";
+            $this->overwrite_data .= "<tr><td>".$stockid."</td><td>".$qdet['grade']."</td></tr>";
+            
+            
+            if ( $cnt >= 100 )
+            {
+                $LotCount++;
+                $this->overwrite_data .= "</table>". $this->line_break. $this->line_break;
+                ############ MAIN TABLE UPDATE #################
+                
+                echo "LOT : ".$LotCount." => ";
+                
+                if ( count( $stockidlistmulti ) > 0 )
+                {
+                     $sqlupdate =  "update mojo_quality_scorecard_v2 set quality_sc = ( case ".$casecondn." end ) WHERE ".implode( " OR ", $stockidlistmulti );
+
+
+                    if( $this->_connection->execute($sqlupdate) )
+                    {
+                        $this->overwrite_data .= "SUCCESS: " . (implode(",",$stockidlistmulti)) . $this->line_break;
+                        echo "SUCCESS";
+                    }
+                    else
+                    {
+                        $this->overwrite_data .= "FAIL: " . (implode(",",$stockidlistmulti)) . $this->line_break;
+                        echo "FAIL";
+                    }               
+                    
+                }
+                
+                
+                
+                ############ MAIN TABLE UPDATE #################
+                
+                
+                
+                ######  MOJOSTOCKMASTER UPDATE #########
+                echo " => ";
+                $sqlupdate_sm =  "update mojostocksmaster set QalityScoreText = ( case ".$casecondn_sm." end ) WHERE STOCKID in ( ".implode( ", ", $stockidlist )." )";
+                
+                if( $this->_connection->execute($sqlupdate_sm) )
+                {
+                    $this->overwrite_data .= "SUCCESS: " . (implode(",",$stockidlist)) . $this->line_break;
+                    echo "SUCCESS";
+                }
+                else
+                {
+                    $this->overwrite_data .= "FAIL: " . (implode(",",$stockidlist)) . $this->line_break;
+                    echo "FAIL";
+                }
+                
+                ######  MOJOSTOCKMASTER UPDATE #########
+                $this->overwrite_data .= $this->line_break ."*****". $this->line_break;
+                
+                echo "\n<br>";
+                
+                $cnt = 0;
+                
+                unset($casecondn); $casecondn = "";
+                unset($casecondn_sm); $casecondn_sm = "";
+                unset($stockidlist); $stockidlist = array();   
+                unset($stockidlistmulti); $stockidlistmulti = array();
+                unset($sqlupdate);
+                unset($sqlupdate_sm);
+                
+                //break;
+            }
+        }
+        
+        if ( count($stockidlist) > 0 )
+        {
+            $this->overwrite_data .= "</table>". $this->line_break. $this->line_break;
+            $LotCount++;
+            echo "LOT : ".$LotCount." => ";
+                     
+            
+            ############ MAIN TABLE UPDATE #################
+            
+            if ( count($stockidlistmulti) > 0 )
+            {
+            
+                $sqlupdate =  "update mojo_quality_scorecard_v2 set quality_sc = ( case ".$casecondn." end ) WHERE ".implode( " OR ", $stockidlistmulti );
+                
+               if( $this->_connection->execute($sqlupdate) )
+               {
+                   $this->overwrite_data .= "SUCCESS:" . (implode(",",$stockidlistmulti)) . $this->line_break;
+                   echo "SUCCESS";
+               }
+               else
+               {
+                   $this->overwrite_data .= "FAIL:" . (implode(",",$stockidlistmulti)) . $this->line_break;
+                   echo "FAIL";
+               }                 
+                 
+            }
+                        
+           
+           ############ MAIN TABLE UPDATE #################
+
+            
+            echo " => ";
+            ######  MOJOSTOCKMASTER UPDATE #########
+            $sqlupdate_sm =  "update mojostocksmaster set QalityScoreText = ( case ".$casecondn_sm." end ) WHERE STOCKID in ( ".implode( ", ", $stockidlist )." )";
+            
+            if( $this->_connection->execute($sqlupdate_sm) )
+            {
+                $this->overwrite_data .=  "SUCCESS:" . (implode(",",$stockidlist)) . $this->line_break;
+                echo "SUCCESS";
+            }
+            else
+            {
+                $this->overwrite_data .=  "FAIL:" . (implode(",",$stockidlist)) . $this->line_break;
+                echo "FAIL";
+            }
+            ######  MOJOSTOCKMASTER UPDATE #########
+            
+        }
+        
     }
     public function update999(){
 		$SQL_LIST = [ 
