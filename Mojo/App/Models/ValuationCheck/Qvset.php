@@ -52,7 +52,7 @@ class Qvset {
     }
 
     public function __destruct()
-    {
+    { 
         $this->_connection->closeConnection();
         unset($this->conn_mongo_r);        
     }
@@ -61,7 +61,7 @@ class Qvset {
         
         //Getting MongoDB valuation data
         $valmdb = $this->getvaluationmdb( $stockid );
-        
+                
         //Getting MySQL valuation data
         $valmysql = $this->getvalmysql( $date,$stockid );
         
@@ -405,5 +405,14 @@ class Qvset {
         }
         return $issusesStock;
     }
+    public function getRedisPipeData($pipeData = ''){
+        $pipe = $this->_redisMmcoreReadObj->pipeline();
+        foreach($pipeData['sid'] as $sid){
+            $key = $pipeData['valKey'] . $sid;
+            $pipe->hget($key,$pipeData['valFields']);           
+        }
+        $result = $pipe->exec();
+        return $result;
+    }  
 }
 ?>

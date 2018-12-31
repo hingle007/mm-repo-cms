@@ -42,10 +42,11 @@ class Qvaws
     public function __destruct()
     {
         unset($this->conn_mongo_w);
+        $this->_connection->closeConnection();
     }
     public function awsdot()
     {
-        echo '<pre>';
+//        echo '<pre>';
         $this->getStockList("","","","");
         
         $StockIDs = array_keys( $this->StockList );
@@ -74,8 +75,6 @@ class Qvaws
 
         $SResult = $this->conn_mongo_w->query($COLLECTIONNAME, $MDBFields, $MDBCondn, array(), $MDBSort, $MDBLimit);
        
-        pr($SResult);
-        exit;
         
         $qualitydotdetails = array();
         
@@ -86,9 +85,9 @@ class Qvaws
             $singlequalitydotdet[ 'sid' ] = $sres['stockid'];
             
             
-            if ( $sres['dotcolor'] == "grey" )
+            if ( isset($sres['dotcolor']) && $sres['dotcolor'] == "grey" )
                 $singlequalitydotdet[ 'q_txt' ] = "Does not qualify";
-            elseif ( $sres['dotcolor'] == "red" )
+            elseif ( isset($sres['dotcolor']) && $sres['dotcolor'] == "red" )
                 $singlequalitydotdet[ 'q_txt' ] = "Below Average";
             elseif ( isset( $sres['finalgrade'] ) )
                 $singlequalitydotdet[ 'q_txt' ] = $sres['finalgrade'];
@@ -114,7 +113,8 @@ class Qvaws
         }
         
         #######################################################################
-        
+//        pr($qualitydotdetails);
+       
         
         
         $valuationdotdetails = array();
@@ -153,7 +153,9 @@ class Qvaws
             $valuationdotdetails[ $vres['stockid'] ] = $singlvaluationdotdet;
             
         }
-        
+//        pr($qualitydotdetails);
+//        pr($valuationdotdetails);
+//        exit;
         if ( count($valuationdotdetails) < 3000 )
         {
             echo "Error : Please check the valuation count ". count($valuationdotdetails);
@@ -164,18 +166,17 @@ class Qvaws
         {
             $dotdetails [ 'sid' ] = $sid;
             
-            $dotdetails [ 'q_txt' ] = $qualitydotdetails [ $sid ] [ 'q_txt' ] ;
-            $dotdetails [ 'q_rank' ] = $qualitydotdetails [ $sid ] [ 'q_rank' ] ;
-            $dotdetails [ 'q_score' ] = $qualitydotdetails [ $sid ] [ 'q_score' ] ;
+            $dotdetails [ 'q_txt' ] = (isset($qualitydotdetails [ $sid ] [ 'q_txt' ])) ? $qualitydotdetails [ $sid ] [ 'q_txt' ] : 'NA' ;
+            $dotdetails [ 'q_rank' ] = (isset($qualitydotdetails [ $sid ] [ 'q_rank' ])) ? $qualitydotdetails [ $sid ] [ 'q_rank' ] : 'NA' ;
+            $dotdetails [ 'q_score' ] = (isset($qualitydotdetails [ $sid ] [ 'q_score' ])) ? $qualitydotdetails [ $sid ] [ 'q_score' ] : 'NA' ;
             
-            $dotdetails [ 'v_txt' ] = $valuationdotdetails [ $sid ] [ 'v_txt' ] ;
-            $dotdetails [ 'v_rank' ] = $valuationdotdetails [ $sid ] [ 'v_rank' ] ;
-            $dotdetails [ 'v_score' ] = $valuationdotdetails [ $sid ] [ 'v_score' ] ;
+            $dotdetails [ 'v_txt' ] = (isset($valuationdotdetails [ $sid ] [ 'v_txt' ])) ? $valuationdotdetails [ $sid ] [ 'v_txt' ] : 'NA' ;
+            $dotdetails [ 'v_rank' ] = (isset($valuationdotdetails [ $sid ] [ 'v_rank' ] )) ? $valuationdotdetails [ $sid ] [ 'v_rank' ]  : 'NA';
+            $dotdetails [ 'v_score' ] = ($valuationdotdetails [ $sid ] [ 'v_score' ]) ? $valuationdotdetails [ $sid ] [ 'v_score' ] : 'NA' ;
             
             $alldotdetails[] = $dotdetails;
         }
        
-              
         
         if ( count($alldotdetails) < 3000 )
         {
@@ -191,7 +192,8 @@ class Qvaws
 //        
 //        $redisObj = new \Mojo\Lib\RedisClient($config['host'], $config['port'],$config['timeout']);
         
-        
+//        echo json_encode ( $alldotdetails );
+//        exit;
         
         if ( $this->_redisMmcoreWriteObj->set( $DOT_KEY , json_encode ( $alldotdetails ) ) )
         echo "SuCCESS";
