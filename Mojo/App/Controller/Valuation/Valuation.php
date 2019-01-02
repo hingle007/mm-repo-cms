@@ -25,8 +25,8 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
     const MAX_MAIL_LIMIT = 50;
     const FROM_EMAIL_ID = array('email' => 'tech@marketsmojo.com', 'name' => 'Tech'); //'tech@marketsmojo.com';
     const TO_EMAIL = array(
-        array('email' => 'harshal@marketsmojo.com', 'name' => 'Harshal'),
-//                            array('email' => 'tech@marketsmojo.com', 'name' => 'Tech'),
+//        array('email' => 'harshal@marketsmojo.com', 'name' => 'Harshal'),
+                            array('email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech'),
 //                            array('email' => 'support@marketsmojo.com', 'name' => 'Support'),
     );
     const NON_DISPLAY_ITEMS = array('does not qualify', 'risky');
@@ -142,7 +142,7 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
             }    
         }
         $finalArrayRes = array();
-        $this->_post['currPrevName'] = 'current';
+//        $this->_post['currPrevName'] = 'current';
         if (!empty($this->_post['currPrevName']) && $this->_post['currPrevName'] == 'current') {
             $finalArrayRes = !empty($finalArray['currentData']) ? array_values($finalArray['currentData']) : array();
         } else if (!empty($this->_post['currPrevName']) && $this->_post['currPrevName'] == 'pending') {
@@ -269,8 +269,6 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
                     $this->sendEmail($mailData);
                 }
                 shell_exec("/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php Valuation runShellExec > /dev/null &");
-//                shell_exec("/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php Valuation runShellExec > /dev/null &");
-                
                 Base\StatusCodes::successMessage(200, "success", "Updated Successfully!");
             }
         }
@@ -311,31 +309,32 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
         Base\StatusCodes::successMessage(200, "success", $data);
     }
     public function runShellExec() {
+        
+        $message = "MM-Core Valuation Process Completed for below Scripts : "."</br>";
         $type = 'valuation_update';
         $shellCommandArr['valuation_update'] = array(
-//            'echo pwd';
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_valuationmeter updateMeterFromTemp',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Dot overwrite',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Mojodots setDotSummary', 
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Qvset valuation',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Qvaws Dot'
-           
-//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_valuationmeter updateMeterFromTemp',
-//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Dot overwrite',
-//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Mojodots setDotSummary', 
-//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Qvset valuation',
-//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Qvaws Dot'
         );
-//        pr($shellCommandArr['valuation_update']);
-//        exit;
         $resp = array(0);
         foreach ($shellCommandArr[$type] as $key => $value) {
-//            echo $key;
             system($value);
-            $resp = array($type.' successfull!');
-             
+            $resp = array($type.' successfull!'); 
+            $message .= $value."</br></br></br>";
         }
+        # Send mail after MM-core Valuaytion update process end #
+        foreach (self::TO_EMAIL as $k => $v) {
+                    $mailData = array(
+                        'subject' => "MM-Core Valuation Update Process completed - ".date("Y-m-d H:i:s"),
+                        'fromAddr' => self::FROM_EMAIL_ID,
+                        'toAddr' => $v,
+                        'message' => $message,
+                    );
+                    $this->sendEmail($mailData);
+                }
         return $resp;
     }
-
 }

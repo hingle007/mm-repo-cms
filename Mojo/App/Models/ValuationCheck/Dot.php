@@ -44,8 +44,8 @@ class Dot {
         $mailObj = new \Mojo\Core\Base\Mail(SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD);
         $fromAddr = array('email' => 'tech@marketsmojo.com', 'name' => 'Markets MOJO Alerts');
         $toAddr = array(
-//            ['email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech']
-            ['email' => 'harshal@marketsmojo.com', 'name' => 'Harshal']
+            ['email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech']
+//            ['email' => 'harshal@marketsmojo.com', 'name' => 'Harshal']
             );
         $this->line_break = "<br/>";
         echo "####### VALUATION ######\n";
