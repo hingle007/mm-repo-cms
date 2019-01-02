@@ -25,7 +25,7 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
     const MAX_MAIL_LIMIT = 50;
     const FROM_EMAIL_ID = array('email' => 'tech@marketsmojo.com', 'name' => 'Tech'); //'tech@marketsmojo.com';
     const TO_EMAIL = array(
-        array('email' => 'amit@marketsmojo.com', 'name' => 'Amit'),
+        array('email' => 'harshal@marketsmojo.com', 'name' => 'Harshal'),
 //                            array('email' => 'tech@marketsmojo.com', 'name' => 'Tech'),
 //                            array('email' => 'support@marketsmojo.com', 'name' => 'Support'),
     );
@@ -225,8 +225,7 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
      */
 
     public function updateValuationData() {
-        
-/*          if (!empty($this->_post)) {
+        if (!empty($this->_post)) {
             $update_sets = array();
             $filter = array();
             $this->_post['message'] = "Please check below updates on Valuation.<br><table border='1'><tr><td>StockID</td><td>Company Name</td><td>Previous Status</td><td>Current Status</td><td>TotalScore</td></tr>";
@@ -258,12 +257,7 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
 
             $this->_post['message'] .= "</table>";
             $data = $this->updateValuationRec($update_sets, $filter, $userid, $allStock,$currStock);
-*/           
-            #Execute shell command -- harshal code starts #
-            $shellRes = array();
-            $type = 'valuation_update';
-            $shellRes = $this->runShellExec($type);
-/*            
+          
             if (!empty($data)) {
                 foreach (self::TO_EMAIL as $k => $v) {
                     $mailData = array(
@@ -274,10 +268,14 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
                     );
                     $this->sendEmail($mailData);
                 }
+                shell_exec("/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php Valuation runShellExec > /dev/null &");
+//                shell_exec("/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php Valuation runShellExec > /dev/null &");
+                
                 Base\StatusCodes::successMessage(200, "success", "Updated Successfully!");
             }
-        }*/
+        }
         Base\StatusCodes::errorMessage(706, "Whoop! Somthing  went wrong");
+        
     }
 
     private function sendEmail($mailData) {
@@ -312,34 +310,31 @@ class Valuation extends App\Models\ValuationCheck\ValuationCheck {
 //            pr($data);exit;
         Base\StatusCodes::successMessage(200, "success", $data);
     }
-    private function runShellExec($type) {
-        
+    public function runShellExec() {
+        $type = 'valuation_update';
         $shellCommandArr['valuation_update'] = array(
-//            'echo pwd'
+//            'echo pwd';
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_valuationmeter updateMeterFromTemp',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Dot overwrite',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Mojodots setDotSummary', 
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Qvset valuation',
             '/usr/bin/php71 /var/www/html/mm-core.marketsmojo.com/index.php valuation_Qvaws Dot'
            
-//            'php7.0 index.php valuation_valuationmeter updateMeterFromTemp',
-//            'php7.0 index.php valuation_Dot overwrite',
-//            'php7.0 index.php valuation_Mojodots setDotSummary', 
-//            'php7.0 index.php valuation_Qvset valuation',
-//            'php7.0 index.php valuation_Qvaws Dot'
+//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_valuationmeter updateMeterFromTemp',
+//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Dot overwrite',
+//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Mojodots setDotSummary', 
+//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Qvset valuation',
+//            '/usr/bin/php7.0 /var/www/html/mm-repo-cms/index.php valuation_Qvaws Dot'
         );
-//        pr($shellCommandArr[$type]);echo $type;exit;
-        $resp = array(0);
-//        pr($shellCommandArr);
+//        pr($shellCommandArr['valuation_update']);
 //        exit;
+        $resp = array(0);
         foreach ($shellCommandArr[$type] as $key => $value) {
 //            echo $key;
             system($value);
             $resp = array($type.' successfull!');
              
         }
-//        echo $value;
-//       pr($resp);exit;
         return $resp;
     }
 

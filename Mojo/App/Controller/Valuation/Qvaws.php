@@ -23,7 +23,7 @@ class Qvaws extends App\Models\ValuationCheck\Qvaws{
     {
         $subject = "Dot (stocks_qvaws)";
         $message = "<html><body>Start time:" . date ("Y-m-d H:i:s") . " Dot (stocks_qvaws)";
-        $this->awsdot();
+        $this->awsdot(
         $message .= "<br/>End Time:" . date("Y-m-d H:i:s") . "</body></html>";
         mailalert( $subject ,$message );
     }

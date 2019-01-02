@@ -45,7 +45,7 @@ class Dot {
         $fromAddr = array('email' => 'tech@marketsmojo.com', 'name' => 'Markets MOJO Alerts');
         $toAddr = array(
 //            ['email' => 'tech@marketsmojo.com', 'name' => 'MarketsMojo Tech']
-            ['email' => 'pradip@marketsmojo.com', 'name' => 'Pradip']
+            ['email' => 'harshal@marketsmojo.com', 'name' => 'Harshal']
             );
         $this->line_break = "<br/>";
         echo "####### VALUATION ######\n";
